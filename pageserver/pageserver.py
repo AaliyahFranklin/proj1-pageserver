@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 import socket    # Basic TCP/IP communication on the internet
 import _thread   # Response computation runs concurrently with main program
 
-
+import os 
 def listen(portnum):
     """
     Create and listen to a server socket.
@@ -90,9 +90,23 @@ def respond(sock):
     log.info("Request was {}\n***\n".format(request))
 
     parts = request.split()
+   
     if len(parts) > 1 and parts[0] == "GET":
-        transmit(STATUS_OK, sock)
-        transmit(CAT, sock)
+        filepath = "./pages" + parts[1]
+        if parts[1].startswith("/~") or parts[1].startswith("//") or "//" in parts[1] or parts[1].startswith("/.."):
+           transmit(STATUS_FORBIDDEN, sock)
+        elif parts[1].endswith('.html') or parts[1].endswith(".css"):
+            if os.path.exists(filepath):
+                transmit(STATUS_OK, sock)
+                with open(filepath, "r") as f:
+                    content = f.read()
+                transmit(content, sock)
+            else:
+                transmit(STATUS_NOT_FOUND, sock)
+        else:
+            transmit(STATUS_NOT_FOUND, sock)
+
+    
     else:
         log.info("Unhandled request: {}".format(request))
         transmit(STATUS_NOT_IMPLEMENTED, sock)
